@@ -1,80 +1,126 @@
-import  java.util.Scanner;
-import  java.util.Random;
+import java.util.Scanner;
+import java.util.Random;
 import java.util.Map;
 import java.util.HashMap;
 
 public class Main {
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        //dichiarazione variabili globali
-        int balance=0;
-        //creazione map
-        Map<String, String> accounts = new HashMap<>();
-        Random random=new Random();
-        int index;
 
-        do {
+    // FUNZIONE LUHN
+    static int calcChecksumLuhn(String first15) {
+        int sum = 0;
+
+        for (int i = 0; i < first15.length(); i++) {
+            int digit = first15.charAt(i) - '0';
+
+            // raddoppia posizioni dispari (umane) => indici pari (Java)
+            if (i % 2 == 0) {
+                digit *= 2;
+                if (digit > 9) {
+                    digit -= 9;
+                }
+            }
+
+            sum += digit;
+        }
+
+        return (10 - (sum % 10)) % 10;
+    }
+
+    public static void main(String[] args) {
+
+        Scanner scanner = new Scanner(System.in);
+        Random random = new Random();
+        Map<String, String> accounts = new HashMap<>();
+
+        while (true) {
+
             System.out.println("1. Create an account");
             System.out.println("2. Log into account");
             System.out.println("0. Exit");
 
+            int choice = scanner.nextInt();
 
+            switch (choice) {
 
-            index = scanner.nextInt();
-            switch (index) {
                 case 1:
                     System.out.println("Your card has been created");
-                    System.out.println("Your card number:");     //creazione numero carta
+                    System.out.println("Your card number:");
+
+                    // 9 cifre account
                     int accountNumber = random.nextInt(1000000000);
-                    String card= String.format("%09d", accountNumber);
-                    int checksum=random.nextInt(10);
-                    System.out.println("400000"+card+checksum);
+                    String accountPart = String.format("%09d", accountNumber);
 
+                    // prime 15 cifre
+                    String first15 = "400000" + accountPart;
 
+                    // calcolo checksum
+                    int checksum = calcChecksumLuhn(first15);
 
-                    System.out.println("Your card PIN:");    //creazione pin
-                    int pinRandom= random.nextInt(10000);
-                    String pinAccount=String.format("%04d",pinRandom);
-                    System.out.println(pinAccount);
-                    String fullCard = "400000" + card + checksum;
-                    accounts.put(fullCard, pinAccount);
+                    String fullCard = first15 + checksum;
+
+                    System.out.println(fullCard);
+
+                    System.out.println("Your card PIN:");
+
+                    String pin = String.format("%04d", random.nextInt(10000));
+                    System.out.println(pin);
+
+                    accounts.put(fullCard, pin);
                     break;
+
                 case 2:
                     System.out.println("Enter your card number:");
-                    scanner.nextLine();
-                    String enterCard= scanner.nextLine();
+                    scanner.nextLine(); // pulizia buffer
+                    String enteredCard = scanner.nextLine();
+
                     System.out.println("Enter your PIN:");
-                    String enterPin=scanner.nextLine();
-                    //controllo valori
-                    if(accounts.containsKey(enterCard)&&(accounts.get(enterCard).equals(enterPin))){
+                    String enteredPin = scanner.nextLine();
+
+                    if (accounts.containsKey(enteredCard) &&
+                            accounts.get(enteredCard).equals(enteredPin)) {
+
                         System.out.println("You have successfully logged in!");
-                        System.out.println("1. Balance");
-                        System.out.println("2. Log out");
-                        System.out.println("0. Exit");
-                        int slt =scanner.nextInt();
-                        switch(slt){
-                            case 1:
-                                System.out.println(balance);
-                                break;
-                            case 2:
-                                System.out.println("You have successfully logged out!");
-                                break;
-                            case 3:
-                                return;
 
+                        boolean loggedIn = true;
 
+                        while (loggedIn) {
+
+                            System.out.println("1. Balance");
+                            System.out.println("2. Log out");
+                            System.out.println("0. Exit");
+
+                            int accountChoice = scanner.nextInt();
+
+                            switch (accountChoice) {
+
+                                case 1:
+                                    System.out.println("Balance: 0");
+                                    break;
+
+                                case 2:
+                                    System.out.println("You have successfully logged out!");
+                                    loggedIn = false;
+                                    break;
+
+                                case 0:
+                                    System.out.println("Bye!");
+                                    return;
+                            }
                         }
-                    }else{
-                        System.out.println("Wrong card number or PIN!");
 
+                    } else {
+                        System.out.println("Wrong card number or PIN!");
                     }
+
                     break;
+
                 case 0:
-                    break;
+                    System.out.println("Bye!");
+                    return;
+
                 default:
                     System.out.println("Wrong Input");
             }
-        } while (index != 0);
-        System.out.println("Bye!");
+        }
     }
 }
