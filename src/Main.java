@@ -105,6 +105,90 @@ public class Main {
         }
 
         return 0; // se non trovato (non dovrebbe), restituisce 0
+    }static void addIncome(String url, String number, int income) {
+        String sql = "UPDATE card SET balance = balance + ? WHERE number = ?";
+
+        try (Connection conn = DriverManager.getConnection(url);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, income);
+            pstmt.setString(2, number);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    static boolean cardExists(String url, String number) {
+
+        String sql = "SELECT 1 FROM card WHERE number = ?";
+
+        try (Connection conn = DriverManager.getConnection(url);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, number);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next();
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+    static void transfer(String url, String from, String to, int amount) {
+
+        String withdraw = "UPDATE card SET balance = balance - ? WHERE number = ?";
+        String deposit = "UPDATE card SET balance = balance + ? WHERE number = ?";
+
+        try (Connection conn = DriverManager.getConnection(url);
+             PreparedStatement pstmt1 = conn.prepareStatement(withdraw);
+             PreparedStatement pstmt2 = conn.prepareStatement(deposit)) {
+
+            pstmt1.setInt(1, amount);
+            pstmt1.setString(2, from);
+            pstmt1.executeUpdate();
+
+            pstmt2.setInt(1, amount);
+            pstmt2.setString(2, to);
+            pstmt2.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    static void closeAccount(String url, String number) {
+        String sql = "DELETE FROM card WHERE number = ?";
+
+        try (Connection conn = DriverManager.getConnection(url);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, number);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    static boolean checkLuhn(String cardNumber) {
+        int sum = 0;
+
+        for (int i = 0; i < cardNumber.length(); i++) {
+            int digit = cardNumber.charAt(i) - '0';
+
+            if (i % 2 == 0) {
+                digit *= 2;
+                if (digit > 9) {
+                    digit -= 9;
+                }
+            }
+
+            sum += digit;
+        }
+
+        return sum % 10 == 0;
     }
 
     public static void main(String[] args) {
@@ -175,7 +259,10 @@ public class Main {
                         while (loggedIn) {
 
                             System.out.println("1. Balance");
-                            System.out.println("2. Log out");
+                            System.out.println("2. Add income");
+                            System.out.println("3. Do transfer");
+                            System.out.println("4. Close account ");
+                            System.out.println("5. Log out");
                             System.out.println("0. Exit");
 
                             int accountChoice = scanner.nextInt();
@@ -187,8 +274,56 @@ public class Main {
                                     int balance = getBalance(url, enteredCard);
                                     System.out.println("Balance: " + balance);
                                     break;
-
                                 case 2:
+                                    System.out.println("Enter income:");
+                                    int income = scanner.nextInt();
+                                    addIncome(url, enteredCard, income);
+                                    System.out.println("Income was added!");
+                                    break;
+                                case 3:
+
+                                    System.out.println("Transfer");
+                                    System.out.println("Enter card number:");
+
+                                    scanner.nextLine();
+                                    String destCard = scanner.nextLine();
+
+                                    if (destCard.equals(enteredCard)) {
+                                        System.out.println("You can't transfer money to the same account!");
+                                        break;
+                                    }
+
+                                    if (!checkLuhn(destCard)) {
+                                        System.out.println("Probably you made a mistake in the card number. Please try again!");
+                                        break;
+                                    }
+
+                                    if (!cardExists(url, destCard)) {
+                                        System.out.println("Such a card does not exist.");
+                                        break;
+                                    }
+
+                                    System.out.println("Enter how much money you want to transfer:");
+                                    int amount = scanner.nextInt();
+
+                                    int balancex = getBalance(url, enteredCard);
+
+                                    if (balancex < amount) {
+                                        System.out.println("Not enough money!");
+                                        break;
+                                    }
+
+                                    transfer(url, enteredCard, destCard, amount);
+
+                                    System.out.println("Success!");
+                                    break;
+                                case 4:
+                                    closeAccount(url, enteredCard);
+                                    System.out.println("The account has been closed!");
+                                    loggedIn = false;
+                                    break;
+
+                                case 5:
                                     System.out.println("You have successfully logged out!");
                                     loggedIn = false;
                                     break;
